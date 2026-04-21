@@ -1,778 +1,318 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Transformer Architecture Interactive Demo</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #0d1117;
-            --surface: #161b22;
-            --surface2: #1c2230;
-            --border: #30363d;
-            --enc: #4f8ef7;
-            --enc-dim: rgba(79,142,247,0.12);
-            --dec: #f7556a;
-            --dec-dim: rgba(247,85,106,0.12);
-            --attn: #f0b429;
-            --attn-dim: rgba(240,180,41,0.12);
-            --text: #e6edf3;
-            --text-muted: #7d8590;
-            --text-dim: #484f58;
-            --accent: #58a6ff;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transformer 互動教學</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC',sans-serif;background:#f5f7ff;color:#1a1a2e;min-height:100vh}
+.app{max-width:1200px;margin:0 auto;padding:2rem 1.5rem;display:flex;flex-direction:column;gap:1.5rem}
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+/* HEADER */
+.hdr{background:#fff;border-radius:20px;padding:2rem 2.5rem;border:2px solid #e0e6ff;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.hdr-left{}
+.hdr-tag{font-family:'JetBrains Mono',monospace;font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:#5b72f5;background:#eef0ff;padding:4px 12px;border-radius:20px;display:inline-block;margin-bottom:0.6rem}
+h1{font-family:'Noto Serif TC',serif;font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:900;color:#1a1a2e;line-height:1.15}
+h1 em{font-style:normal;color:#5b72f5}
+.hdr-sub{font-size:0.95rem;color:#5a6474;margin-top:0.35rem;font-weight:400}
+.step-badge{background:#5b72f5;color:#fff;border-radius:14px;padding:0.8rem 1.4rem;text-align:center;flex-shrink:0;min-width:90px}
+.step-badge-num{font-family:'Noto Serif TC',serif;font-size:2.2rem;font-weight:900;line-height:1}
+.step-badge-label{font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;opacity:0.8;margin-top:2px}
 
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            line-height: 1.6;
-        }
+/* CONTROLS */
+.controls{display:flex;align-items:center;justify-content:center;gap:0.75rem;flex-wrap:wrap}
+.btn{font-family:'Noto Sans TC',sans-serif;font-size:1rem;font-weight:700;padding:0.65rem 1.8rem;border-radius:10px;border:2px solid transparent;cursor:pointer;transition:all 0.18s}
+.btn-primary{background:#5b72f5;color:#fff;border-color:#5b72f5}
+.btn-primary:hover{background:#4a60e0;transform:translateY(-2px)}
+.btn-primary:active{transform:translateY(0)}
+.btn-ghost{background:#fff;color:#5a6474;border-color:#dde3f5}
+.btn-ghost:hover{border-color:#5b72f5;color:#5b72f5}
+.btn-ghost:disabled{opacity:0.35;pointer-events:none}
+.dots{display:flex;gap:6px;align-items:center}
+.dot{width:9px;height:9px;border-radius:50%;background:#dde3f5;transition:all 0.25s}
+.dot.done{background:#5b72f5}
+.dot.active{background:#f5a623;transform:scale(1.3)}
 
-        /* ── LAYOUT ────────────────────────────────── */
-        .app {
-            display: grid;
-            grid-template-rows: auto auto 1fr auto;
-            min-height: 100vh;
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem;
-            gap: 1.5rem;
-        }
+/* MAIN GRID */
+.main{display:grid;grid-template-columns:360px 1fr;gap:1.5rem;align-items:start}
+@media(max-width:860px){.main{grid-template-columns:1fr}}
 
-        /* ── HEADER ────────────────────────────────── */
-        header {
-            text-align: center;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 1.5rem;
-        }
+/* LEFT PANEL */
+.left{display:flex;flex-direction:column;gap:1rem}
+.card{background:#fff;border-radius:16px;padding:1.5rem;border:2px solid #e0e6ff}
+.card-tag{font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:0.18em;text-transform:uppercase;color:#9bacd4;margin-bottom:0.5rem}
+.step-title{font-family:'Noto Serif TC',serif;font-size:1.55rem;font-weight:900;color:#1a1a2e;line-height:1.25;margin-bottom:0.9rem}
+.step-desc{font-size:1.05rem;line-height:2;color:#2c3e5c;font-weight:400}
+.tip-box{background:#eef0ff;border-radius:12px;padding:1rem 1.2rem;margin-top:1rem;display:flex;gap:0.7rem}
+.tip-icon{font-size:1.1rem;line-height:1;flex-shrink:0;padding-top:2px}
+.tip-tag{font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:#5b72f5;margin-bottom:0.3rem}
+.tip-text{font-size:0.88rem;color:#3a4f8c;line-height:1.65}
+.debate-card{background:#fffbf0;border-radius:16px;padding:1.4rem;border:2px solid #fde8a0}
+.debate-hdr{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.65rem}
+.debate-hdr-icon{font-size:1.1rem}
+.debate-hdr-text{font-family:'Noto Serif TC',serif;font-size:1rem;font-weight:900;color:#c07d0a}
+.debate-q{font-size:0.95rem;line-height:1.9;color:#7a5200;font-style:italic}
 
-        .header-label {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            letter-spacing: 0.25em;
-            text-transform: uppercase;
-            color: var(--accent);
-            margin-bottom: 0.5rem;
-        }
+/* ARCH PANEL */
+.arch{background:#fff;border-radius:16px;padding:1.5rem;border:2px solid #e0e6ff;position:relative;overflow:hidden}
+.arch-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+.col-label{font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;text-align:center;padding:0.35rem;border-radius:8px;margin-bottom:0.85rem;font-weight:700}
+.enc-lbl{color:#5b72f5;background:#eef0ff}
+.dec-lbl{color:#e85d6e;background:#ffeef0}
 
-        h1 {
-            font-family: 'Noto Serif TC', serif;
-            font-size: clamp(1.6rem, 4vw, 2.8rem);
-            font-weight: 900;
-            letter-spacing: -0.02em;
-            color: var(--text);
-            line-height: 1.2;
-        }
+/* NODES */
+.node{border-radius:12px;padding:1rem 1.1rem;margin-bottom:0.75rem;border:2px solid #e8ecf8;background:#f9faff;transition:all 0.3s cubic-bezier(0.4,0,0.2,1)}
+.node-tag{font-family:'JetBrains Mono',monospace;font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:#b0bbdd;margin-bottom:0.35rem}
+.node-name{font-family:'Noto Sans TC',sans-serif;font-size:0.95rem;font-weight:700;color:#2c3560}
+.node-sub{font-size:0.78rem;color:#7d8db5;margin-top:0.3rem;line-height:1.5}
+.qkv{display:flex;gap:6px;margin-top:0.6rem}
+.qkv-chip{flex:1;padding:4px 0;border-radius:7px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:700;border:2px solid #c5cef5;background:#eef0ff;color:#5b72f5}
 
-        h1 span {
-            color: var(--enc);
-        }
+/* active states */
+.node.on-enc{border-color:#5b72f5;background:#eef0ff;box-shadow:0 0 0 4px rgba(91,114,245,0.12);transform:scale(1.02)}
+.node.on-enc .node-name{color:#3a52d4}
+.node.on-enc .node-tag{color:#7f96f5}
+.node.on-dec{border-color:#e85d6e;background:#ffeef0;box-shadow:0 0 0 4px rgba(232,93,110,0.12);transform:scale(1.02)}
+.node.on-dec .node-name{color:#c03040}
+.node.on-dec .node-tag{color:#e58090}
 
-        .subtitle {
-            font-size: 0.95rem;
-            color: var(--text-muted);
-            margin-top: 0.4rem;
-            font-weight: 300;
-        }
+/* output */
+.out-display{min-height:2.4rem;display:flex;align-items:center;justify-content:center}
+.out-word{font-family:'Noto Serif TC',serif;font-size:1.8rem;font-weight:900;color:#e85d6e;opacity:0;transition:opacity 0.5s;letter-spacing:0.04em}
+.out-word.show{opacity:1}
+@keyframes pop{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.out-word.pulse{animation:pop 1.6s ease-in-out infinite}
 
-        /* ── CONTROLS ──────────────────────────────── */
-        .controls {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-        }
+/* SVG */
+#svg-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
+@keyframes attn-dash{to{stroke-dashoffset:-20}}
+.attn-line{stroke-dasharray:6 4;animation:attn-dash 1s linear infinite}
 
-        .btn {
-            font-family: 'Noto Sans TC', sans-serif;
-            font-size: 0.9rem;
-            font-weight: 500;
-            padding: 0.55rem 1.5rem;
-            border-radius: 6px;
-            border: 1px solid transparent;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+/* floating token */
+.tok{position:absolute;font-family:'JetBrains Mono',monospace;font-size:0.65rem;font-weight:700;padding:4px 10px;border-radius:20px;pointer-events:none;z-index:10;transition:left 0.8s ease,top 0.8s ease,opacity 0.3s;opacity:0}
+.tok.show{opacity:1}
+.tok-enc{background:#5b72f5;color:#fff}
+.tok-ctx{background:#f5a623;color:#fff}
 
-        .btn-primary {
-            background: var(--enc);
-            color: #fff;
-            border-color: var(--enc);
-        }
-        .btn-primary:hover { filter: brightness(1.15); transform: translateY(-1px); }
-        .btn-primary:active { transform: translateY(0); }
-
-        .btn-secondary {
-            background: transparent;
-            color: var(--text-muted);
-            border-color: var(--border);
-        }
-        .btn-secondary:hover { border-color: var(--text-muted); color: var(--text); }
-        .btn-secondary:disabled { opacity: 0.35; pointer-events: none; }
-
-        .progress-wrap {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-left: 0.5rem;
-        }
-
-        .progress-dots {
-            display: flex;
-            gap: 5px;
-        }
-
-        .dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--border);
-            transition: background 0.3s;
-        }
-
-        .dot.done { background: var(--enc); }
-        .dot.current { background: var(--attn); }
-
-        /* ── MAIN GRID ─────────────────────────────── */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 380px 1fr;
-            gap: 1.5rem;
-            align-items: start;
-        }
-
-        @media (max-width: 900px) {
-            .main-grid { grid-template-columns: 1fr; }
-        }
-
-        /* ── LEFT PANEL ────────────────────────────── */
-        .left-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        /* Step card */
-        .step-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-        }
-
-        .step-number {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.65rem;
-            letter-spacing: 0.18em;
-            text-transform: uppercase;
-            color: var(--text-dim);
-            margin-bottom: 0.35rem;
-        }
-
-        .step-title {
-            font-family: 'Noto Serif TC', serif;
-            font-size: 1.45rem;
-            font-weight: 700;
-            color: var(--enc);
-            line-height: 1.3;
-            margin-bottom: 0.9rem;
-        }
-
-        .step-desc {
-            font-size: 1rem;
-            line-height: 1.9;
-            color: var(--text);
-            font-weight: 400;
-        }
-
-        /* Tip card */
-        .tip-card {
-            background: rgba(88,166,255,0.06);
-            border: 1px solid rgba(88,166,255,0.2);
-            border-radius: 10px;
-            padding: 1rem 1.2rem;
-            margin-top: 1rem;
-            display: flex;
-            gap: 0.7rem;
-            align-items: flex-start;
-        }
-
-        .tip-icon {
-            font-size: 1rem;
-            line-height: 1;
-            padding-top: 0.15rem;
-            flex-shrink: 0;
-        }
-
-        .tip-label {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.6rem;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            color: var(--accent);
-            margin-bottom: 0.25rem;
-        }
-
-        .tip-text {
-            font-size: 0.85rem;
-            color: #8fb4ff;
-            line-height: 1.65;
-        }
-
-        /* Debate card */
-        .debate-card {
-            background: rgba(240,180,41,0.06);
-            border: 1px solid rgba(240,180,41,0.25);
-            border-radius: 12px;
-            padding: 1.25rem 1.4rem;
-        }
-
-        .debate-header {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.7rem;
-        }
-
-        .debate-icon { font-size: 1.1rem; }
-
-        .debate-title {
-            font-family: 'Noto Serif TC', serif;
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: var(--attn);
-            letter-spacing: 0.03em;
-        }
-
-        .debate-q {
-            font-size: 0.92rem;
-            line-height: 1.85;
-            color: #d4a853;
-            font-style: italic;
-        }
-
-        /* ── RIGHT PANEL: ARCHITECTURE ─────────────── */
-        .arch-panel {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 1.5rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .arch-cols {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-        }
-
-        .stack-label {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.65rem;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            text-align: center;
-            margin-bottom: 0.75rem;
-            padding: 0.3rem;
-            border-radius: 4px;
-        }
-
-        .enc-label { color: var(--enc); background: var(--enc-dim); }
-        .dec-label { color: var(--dec); background: var(--dec-dim); }
-
-        /* Nodes */
-        .node {
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 0.85rem 1rem;
-            margin-bottom: 0.75rem;
-            background: var(--surface2);
-            transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
-            position: relative;
-        }
-
-        .node-label {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.58rem;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            color: var(--text-dim);
-            margin-bottom: 0.45rem;
-        }
-
-        .node-title {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .node-detail {
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            margin-top: 0.3rem;
-            line-height: 1.5;
-        }
-
-        /* QKV chips */
-        .qkv-row {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 0.6rem;
-        }
-
-        .chip {
-            flex: 1;
-            padding: 0.35rem 0;
-            border-radius: 6px;
-            text-align: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            font-weight: 700;
-            border: 1px solid;
-        }
-
-        .chip-q { background: rgba(79,142,247,0.12); border-color: rgba(79,142,247,0.4); color: var(--enc); }
-        .chip-k { background: rgba(79,142,247,0.08); border-color: rgba(79,142,247,0.25); color: var(--enc); }
-        .chip-v { background: rgba(79,142,247,0.06); border-color: rgba(79,142,247,0.15); color: var(--enc); }
-
-        /* Active state */
-        .node.active-enc {
-            border-color: var(--enc);
-            background: var(--enc-dim);
-            box-shadow: 0 0 20px rgba(79,142,247,0.2);
-            transform: scale(1.02);
-        }
-
-        .node.active-dec {
-            border-color: var(--dec);
-            background: var(--dec-dim);
-            box-shadow: 0 0 20px rgba(247,85,106,0.2);
-            transform: scale(1.02);
-        }
-
-        .node.active-enc .node-label,
-        .node.active-enc .node-title { color: var(--enc); }
-        .node.active-dec .node-label,
-        .node.active-dec .node-title { color: var(--dec); }
-
-        /* Output display */
-        .output-display {
-            min-height: 2.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .output-word {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: var(--dec);
-            opacity: 0;
-            transition: opacity 0.6s;
-            letter-spacing: 0.05em;
-        }
-
-        .output-word.visible { opacity: 1; }
-
-        @keyframes pulse-anim {
-            0%,100% { opacity:1; transform: scale(1); }
-            50% { opacity:0.75; transform: scale(1.06); }
-        }
-        .output-word.pulse { animation: pulse-anim 1.8s ease-in-out infinite; }
-
-        /* Floating token */
-        .token-float {
-            position: absolute;
-            pointer-events: none;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.65rem;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 99px;
-            z-index: 20;
-            transition: left 0.8s ease-in-out, top 0.8s ease-in-out;
-            opacity: 0;
-        }
-
-        .token-float.show { opacity: 1; }
-        .token-enc { background: var(--enc); color: #fff; }
-        .token-ctx { background: var(--attn); color: #000; }
-
-        /* Attention SVG */
-        #svgCanvas {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-
-        .att-line {
-            stroke-dasharray: 6 4;
-            animation: att-dash 1.2s linear infinite;
-        }
-
-        @keyframes att-dash {
-            to { stroke-dashoffset: -20; }
-        }
-
-        /* ── FOOTER LEGEND ─────────────────────────── */
-        footer {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1.2rem;
-            justify-content: center;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border);
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-            font-size: 0.78rem;
-            color: var(--text-muted);
-        }
-
-        .legend-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-    </style>
+/* FOOTER */
+.footer{display:flex;flex-wrap:wrap;gap:1rem;justify-content:center;padding-top:1rem;border-top:2px solid #e8ecf8}
+.leg{display:flex;align-items:center;gap:0.45rem;font-size:0.82rem;color:#6070a0}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+</style>
 </head>
 <body>
 <div class="app">
 
-    <!-- HEADER -->
-    <header>
-        <div class="header-label">Interactive Learning Module · Deep Learning</div>
-        <h1>Transformer <span>運作原理</span>與思辯</h1>
-        <p class="subtitle">深入 AI 的思考核心，挑戰你的理解力</p>
-    </header>
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-tag">Interactive Learning · Deep Learning</div>
+    <h1>Transformer <em>運作原理</em>與思辯</h1>
+    <div class="hdr-sub">深入 AI 的思考核心，挑戰你的理解力</div>
+  </div>
+  <div class="step-badge">
+    <div class="step-badge-num" id="badgeNum">0</div>
+    <div class="step-badge-label">/ 7 Steps</div>
+  </div>
+</header>
 
-    <!-- CONTROLS -->
-    <nav class="controls">
-        <button class="btn btn-secondary" id="prevBtn" onclick="prevStep()">← 上一步</button>
-        <button class="btn btn-primary" id="nextBtn" onclick="nextStep()">下一步 →</button>
-        <button class="btn btn-secondary" onclick="resetDemo()">重置</button>
-        <div class="progress-wrap">
-            <div class="progress-dots" id="progressDots"></div>
-        </div>
-    </nav>
-
-    <!-- MAIN -->
-    <div class="main-grid">
-
-        <!-- LEFT -->
-        <div class="left-panel">
-            <div class="step-card">
-                <div class="step-number" id="stepNumber">STEP 0 / 7</div>
-                <div class="step-title" id="stepTitle">準備開始</div>
-                <div class="step-desc" id="stepDesc">
-                    點擊「下一步」來觀察 Transformer 如何處理一段關於狗狗的對話。
-                </div>
-                <div class="tip-card">
-                    <div class="tip-icon">💡</div>
-                    <div>
-                        <div class="tip-label">小知識</div>
-                        <div class="tip-text" id="stepTip">
-                            Transformer 最初出現在 2017 年 Google 的論文《Attention Is All You Need》中。
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="debate-card">
-                <div class="debate-header">
-                    <span class="debate-icon">🤔</span>
-                    <span class="debate-title">課堂思辯題</span>
-                </div>
-                <div class="debate-q" id="stepDebate">
-                    在進入 AI 的世界前：你認為機器「理解」文字的方式，與人類「理解」文字的方式有本質上的不同嗎？
-                </div>
-            </div>
-        </div>
-
-        <!-- RIGHT: ARCHITECTURE -->
-        <div class="arch-panel">
-            <svg id="svgCanvas"></svg>
-
-            <div class="arch-cols">
-                <!-- ENCODER -->
-                <div>
-                    <div class="stack-label enc-label">⬆ Encoder · 理解端</div>
-
-                    <div class="node" id="enc-ffn">
-                        <div class="node-label">Step 4 · Encoder Output</div>
-                        <div class="node-title">Feed Forward Network</div>
-                        <div class="node-detail">將 Attention 結果進一步轉換</div>
-                    </div>
-
-                    <div class="node" id="enc-attn">
-                        <div class="node-label">Step 3 · Core</div>
-                        <div class="node-title">Self-Attention</div>
-                        <div class="node-detail">計算詞與詞之間的關聯強度</div>
-                        <div class="qkv-row">
-                            <div class="chip chip-q">Q</div>
-                            <div class="chip chip-k">K</div>
-                            <div class="chip chip-v">V</div>
-                        </div>
-                    </div>
-
-                    <div class="node" id="enc-pos">
-                        <div class="node-label">Step 2 · Position</div>
-                        <div class="node-title">Positional Encoding</div>
-                        <div class="node-detail">加入順序資訊 <span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;">0, 1, 2, 3…</span></div>
-                    </div>
-
-                    <div class="node" id="enc-input">
-                        <div class="node-label">Step 1 · Input</div>
-                        <div class="node-title">Input Embedding</div>
-                        <div class="node-detail" style="font-family:'JetBrains Mono',monospace;">"I heard a dog bark"</div>
-                    </div>
-                </div>
-
-                <!-- DECODER -->
-                <div>
-                    <div class="stack-label dec-label">⬇ Decoder · 生成端</div>
-
-                    <div class="node" id="dec-output">
-                        <div class="node-label">Step 7 · Output</div>
-                        <div class="node-title">Probability Output</div>
-                        <div class="output-display">
-                            <div class="output-word" id="final-output">PUPPY!</div>
-                        </div>
-                    </div>
-
-                    <div class="node" id="dec-attn-cross">
-                        <div class="node-label">Step 5 · Bridge</div>
-                        <div class="node-title">Cross-Attention</div>
-                        <div class="node-detail">結合來自 Encoder 的語意訊息</div>
-                    </div>
-
-                    <div class="node" id="dec-attn-mask">
-                        <div class="node-label">Step 6 · Causal</div>
-                        <div class="node-title">Masked Self-Attention</div>
-                        <div class="node-detail">只看目前已生成的部分</div>
-                    </div>
-
-                    <div class="node" id="dec-input">
-                        <div class="node-label">Step 6 · Input</div>
-                        <div class="node-title">Output Embedding</div>
-                        <div class="node-detail" style="font-family:'JetBrains Mono',monospace;font-style:italic;">"when my dog was a…"</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Floating tokens -->
-            <div class="token-float token-enc" id="token-a">VECTOR [0.2, -0.1…]</div>
-            <div class="token-float token-ctx" id="token-b">CONTEXT (KV)</div>
-        </div>
-    </div>
-
-    <!-- FOOTER -->
-    <footer>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--enc)"></div>Encoder：負責理解輸入</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--dec)"></div>Decoder：負責生成輸出</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--attn)"></div>Attention：計算關注權重</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--text-dim)"></div>Embedding：將文字向量化</div>
-    </footer>
-
+<!-- CONTROLS -->
+<div class="controls">
+  <button class="btn btn-ghost" id="prevBtn" onclick="prevStep()">← 上一步</button>
+  <button class="btn btn-primary" id="nextBtn" onclick="nextStep()">下一步 →</button>
+  <button class="btn btn-ghost" onclick="resetDemo()">重置</button>
+  <div class="dots" id="dots"></div>
 </div>
 
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT -->
+  <div class="left">
+    <div class="card">
+      <div class="card-tag" id="cardTag">STEP 0 — 開始</div>
+      <div class="step-title" id="stepTitle">準備開始</div>
+      <div class="step-desc" id="stepDesc">點擊「下一步」來觀察 Transformer 如何處理一段關於狗狗的對話。</div>
+      <div class="tip-box">
+        <div class="tip-icon">💡</div>
+        <div>
+          <div class="tip-tag">小知識</div>
+          <div class="tip-text" id="tipText">Transformer 最初出現在 2017 年 Google 的論文《Attention Is All You Need》中。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="debate-card">
+      <div class="debate-hdr">
+        <span class="debate-hdr-icon">🤔</span>
+        <span class="debate-hdr-text">課堂思辯題</span>
+      </div>
+      <div class="debate-q" id="debateQ">在進入 AI 的世界前：你認為機器「理解」文字的方式，與人類「理解」文字的方式有本質上的不同嗎？</div>
+    </div>
+  </div>
+
+  <!-- ARCH -->
+  <div class="arch">
+    <svg id="svg-canvas"></svg>
+    <div class="arch-grid">
+
+      <!-- ENCODER -->
+      <div>
+        <div class="col-label enc-lbl">⬆ Encoder · 理解端</div>
+
+        <div class="node" id="enc-ffn">
+          <div class="node-tag">Step 4 · Output</div>
+          <div class="node-name">Feed Forward Network</div>
+          <div class="node-sub">對 Attention 結果進一步非線性轉換</div>
+        </div>
+
+        <div class="node" id="enc-attn">
+          <div class="node-tag">Step 3 · Core</div>
+          <div class="node-name">Self-Attention</div>
+          <div class="node-sub">計算詞與詞之間的關聯強度</div>
+          <div class="qkv">
+            <div class="qkv-chip">Q</div>
+            <div class="qkv-chip">K</div>
+            <div class="qkv-chip">V</div>
+          </div>
+        </div>
+
+        <div class="node" id="enc-pos">
+          <div class="node-tag">Step 2 · Position</div>
+          <div class="node-name">Positional Encoding</div>
+          <div class="node-sub">加入順序資訊 <span style="font-family:'JetBrains Mono',monospace">0, 1, 2, 3…</span></div>
+        </div>
+
+        <div class="node" id="enc-input">
+          <div class="node-tag">Step 1 · Input</div>
+          <div class="node-name">Input Embedding</div>
+          <div class="node-sub" style="font-family:'JetBrains Mono',monospace">"I heard a dog bark"</div>
+        </div>
+      </div>
+
+      <!-- DECODER -->
+      <div>
+        <div class="col-label dec-lbl">⬇ Decoder · 生成端</div>
+
+        <div class="node" id="dec-output">
+          <div class="node-tag">Step 7 · Final</div>
+          <div class="node-name">Probability Output</div>
+          <div class="out-display">
+            <div class="out-word" id="finalWord">PUPPY!</div>
+          </div>
+        </div>
+
+        <div class="node" id="dec-cross">
+          <div class="node-tag">Step 5 · Bridge</div>
+          <div class="node-name">Cross-Attention</div>
+          <div class="node-sub">結合來自 Encoder 的語意訊息</div>
+        </div>
+
+        <div class="node" id="dec-mask">
+          <div class="node-tag">Step 6 · Causal</div>
+          <div class="node-name">Masked Self-Attention</div>
+          <div class="node-sub">只看目前已生成的部分，防止「偷看」</div>
+        </div>
+
+        <div class="node" id="dec-input">
+          <div class="node-tag">Step 6 · Input</div>
+          <div class="node-name">Output Embedding</div>
+          <div class="node-sub" style="font-family:'JetBrains Mono',monospace;font-style:italic">"when my dog was a…"</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tok tok-enc" id="tok-a">VECTOR [0.2…]</div>
+    <div class="tok tok-ctx" id="tok-b">CONTEXT (KV)</div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="leg"><div class="leg-dot" style="background:#5b72f5"></div>Encoder：負責理解輸入</div>
+  <div class="leg"><div class="leg-dot" style="background:#e85d6e"></div>Decoder：負責生成輸出</div>
+  <div class="leg"><div class="leg-dot" style="background:#f5a623"></div>Attention：計算關注權重</div>
+  <div class="leg"><div class="leg-dot" style="background:#b0bbdd"></div>Embedding：將文字向量化</div>
+</footer>
+
+</div>
 <script>
-    let step = 0;
-    const TOTAL = 7;
+let step=0;
+const TOTAL=7;
+const steps=[
+  {title:"準備開始",tag:"STEP 0 — 開始",desc:"點擊「下一步」來觀察 Transformer 如何處理一段關於狗狗的對話。",tip:"Transformer 最初出現在 2017 年 Google 的論文《Attention Is All You Need》中。",debate:"在進入 AI 的世界前：你認為機器「理解」文字的方式，與人類「理解」文字的方式有本質上的不同嗎？",enc:[],dec:[]},
+  {title:"文字嵌入（Embedding）",tag:"STEP 1 — 向量化",desc:"每個單詞（Token）會被轉換為一組高維度向量。「Dog」在數學空間中會靠近「Puppy」或「Cat」，因為它們意義相近。",tip:"Embedding 將意義相近的詞在數學空間中拉近，讓模型「感受」語意距離。",debate:"如果我們用「座標」就能代表「意義」，這是否意味著人類的所有思想其實都可以被簡化為數學公式？",enc:["enc-input"],dec:[],act:()=>animTok('enc-input','enc-pos','tok-a')},
+  {title:"位置編碼（Positional Encoding）",tag:"STEP 2 — 加入順序",desc:"Transformer 同時處理所有單詞，需要額外的「順序」資訊。位置編碼被加進向量中，告訴模型每個詞的位置。",tip:"沒有位置編碼，模型就分不清「狗咬人」和「人咬狗」這兩句話的差異。",debate:"除了文字，生活中還有哪些事情「順序」是決定意義的關鍵？打破順序後，我們還能溝通嗎？",enc:["enc-pos"],dec:[],act:()=>animTok('enc-pos','enc-attn','tok-a')},
+  {title:"自注意力機制（Self-Attention）",tag:"STEP 3 — 找關聯",desc:"模型計算「Dog」與「Bark」之間的關聯強度。透過 Q、K、V 三個矩陣運算，模型找出句子內最重要的連結。",tip:"Q = 查詢者，K = 被查詢者，V = 實際內容。三者共同決定「誰該關注誰」。",debate:"人類在聽話時也會「過濾」資訊。你認為 AI 的注意力機制，與人類的「偏見」或「焦點」有什麼相似之處？",enc:["enc-attn"],dec:[],act:()=>drawAttn()},
+  {title:"編碼完成（Encoder Output）",tag:"STEP 4 — 語意精華",desc:"Encoder 把整句話壓縮成了一組「語意精華」（Context Vector），包含了這句話的主題：一隻正在吠叫的狗。",tip:"Encoder 的輸出包含了每個詞的深度含義，並考量了它們之間的關係。",debate:"「壓縮」必然帶來損耗。當一段複雜的情感被壓縮成向量時，你覺得最容易遺失的是什麼？",enc:["enc-ffn"],dec:[],act:()=>animTok('enc-attn','enc-ffn','tok-a')},
+  {title:"傳遞語境（Cross-Attention）",tag:"STEP 5 — 橋接",desc:"語意精華被傳送給 Decoder。Decoder 在生成每個詞時，會不斷回頭查看 Encoder 給的背景資訊，確保回應連貫。",tip:"這就像說話者（Decoder）參考聽到的資訊（Encoder），才能給出有意義的回覆。",debate:"在溝通中，「傾聽」與「表達」哪一個更難模擬？為什麼 Decoder 必須頻繁回頭看 Encoder 的資訊？",enc:[],dec:["dec-cross"],act:()=>animTok('enc-ffn','dec-cross','tok-b')},
+  {title:"Decoder 預測（Masked Attention）",tag:"STEP 6 — 生成",desc:"Decoder 讀取它目前生成的句子「When my dog was a...」，結合背景語境。Masked Attention 確保它不會偷看未來的答案。",tip:"Masked Attention 是讓 AI 學習「一步一步」生成的關鍵機制，防止模型在訓練時「作弊」。",debate:"如果 AI 只是在算「機率最高的下一個詞」，這算不算是真正的「創作」？預測與創造的界線在哪裡？",enc:[],dec:["dec-input","dec-mask"],act:()=>animTok('dec-input','dec-mask','tok-a')},
+  {title:"輸出結果",tag:"STEP 7 — 完成 ✓",desc:"模型計算出接下來機率最高的詞是「PUPPY」。它成功理解了時間關係，判斷「吠叫的狗」的過去很可能是「小狗」時期。",tip:"最終輸出是一個機率分布（Softmax），模型選擇機率最高的詞作為答案輸出。",debate:"如果 AI 預測錯了（例如輸出 Kitten），我們應該怪罪訓練數據太少，還是模型根本不理解邏輯？",enc:[],dec:["dec-output"],act:()=>{const el=document.getElementById('finalWord');el.classList.add('show');setTimeout(()=>el.classList.add('pulse'),400)}}
+];
 
-    const steps = [
-        {
-            title: "準備開始",
-            desc: "我們準備將「I heard a dog bark」這句話餵給模型，看看它如何預測接下來的詞。",
-            tip: "Transformer 最初出現在 2017 年 Google 的論文《Attention Is All You Need》中。",
-            debate: "在進入 AI 的世界前：你認為機器「理解」文字的方式，與人類「理解」文字的方式有本質上的不同嗎？",
-            enc: [], dec: []
-        },
-        {
-            title: "文字嵌入 (Embedding)",
-            desc: "每個單詞（Token）會被轉換為一組高維度向量。例如「Dog」在數學空間中會靠近「Puppy」或「Cat」，因為它們意義相近。",
-            tip: "Embedding 將意義相近的詞在數學空間中拉近，讓模型「感受」語意。",
-            debate: "如果我們用「座標」就能代表「意義」，這是否意味著人類的所有思想其實都可以被簡化為數學公式？",
-            enc: ["enc-input"], dec: [],
-            action: () => animateToken('enc-input', 'enc-pos', 'token-a')
-        },
-        {
-            title: "位置編碼 (Positional Encoding)",
-            desc: "Transformer 同時處理所有單詞，它需要額外的「順序」資訊。位置編碼被加進向量中，告訴模型每個詞的位置。",
-            tip: "沒有位置編碼，模型就分不清「狗咬人」和「人咬狗」這兩句話。",
-            debate: "除了文字，生活中還有哪些事情「順序」是決定意義的關鍵？打破順序後，我們還能溝通嗎？",
-            enc: ["enc-pos"], dec: [],
-            action: () => animateToken('enc-pos', 'enc-attn', 'token-a')
-        },
-        {
-            title: "自注意力機制 (Self-Attention)",
-            desc: "模型計算「Dog」與「Bark」之間的關聯強度。透過 Q、K、V 三個矩陣運算，模型找到句子內的關鍵連結。",
-            tip: "Q = 查詢者，K = 被查詢者，V = 實際內容。這三者共同決定「誰該關注誰」。",
-            debate: "人類在聽話時也會「過濾」資訊。你認為 AI 的注意力機制，與人類的「偏見」或「焦點」有什麼相似之處？",
-            enc: ["enc-attn"], dec: [],
-            action: () => drawAttentionLines()
-        },
-        {
-            title: "編碼完成 (Encoder Output)",
-            desc: "Encoder 把整句話壓縮成了一組「語意精華」（Context Vector）。這包含了這句話的主題：一隻正在吠叫的狗。",
-            tip: "Encoder 的輸出包含了每個詞的「深度含義」，也考量了它們之間的關係。",
-            debate: "「壓縮」必然帶來損耗。當一段複雜的情感被壓縮成向量時，你覺得最容易遺失的是什麼？",
-            enc: ["enc-ffn"], dec: [],
-            action: () => animateToken('enc-attn', 'enc-ffn', 'token-a')
-        },
-        {
-            title: "傳遞語境 (Cross-Attention)",
-            desc: "語意精華被傳送給 Decoder。Decoder 在生成每個詞時，會不斷回頭查看 Encoder 給的背景資訊，確保回應連貫。",
-            tip: "這就像說話者（Decoder）參考聽到的資訊（Encoder），才能給出有意義的回覆。",
-            debate: "在溝通中，「傾聽」與「表達」哪一個更難模擬？為什麼 Decoder 必須頻繁回頭看 Encoder 的資訊？",
-            enc: [], dec: ["dec-attn-cross"],
-            action: () => animateToken('enc-ffn', 'dec-attn-cross', 'token-b')
-        },
-        {
-            title: "Decoder 預測 (Masked Self-Attention)",
-            desc: "Decoder 讀取它目前生成的句子「When my dog was a...」，並結合背景語境。Masked Attention 確保它不會偷看未來的答案。",
-            tip: "Masked Attention 是讓 AI 學習「一步一步」生成的關鍵機制，防止「作弊」。",
-            debate: "如果 AI 只是在算「機率最高的下一個詞」，這算不算是真正的「創作」？預測與創造的界線在哪裡？",
-            enc: [], dec: ["dec-input", "dec-attn-mask"],
-            action: () => animateToken('dec-input', 'dec-attn-mask', 'token-a')
-        },
-        {
-            title: "輸出結果 ✓",
-            desc: "模型計算出接下來機率最高的詞是「PUPPY」。它成功理解了時間關係與主體，判斷「吠叫的狗」的過去很可能是「小狗」。",
-            tip: "最終輸出是一個機率分布（Softmax），模型選擇最高機率的詞作為答案。",
-            debate: "如果 AI 預測錯了（例如輸出 Kitten），我們應該怪罪訓練數據太少，還是模型根本不理解邏輯？",
-            enc: [], dec: ["dec-output"],
-            action: () => {
-                const el = document.getElementById('final-output');
-                el.classList.add('visible');
-                setTimeout(() => el.classList.add('pulse'), 300);
-            }
-        }
-    ];
+// build dots
+const dotsEl=document.getElementById('dots');
+for(let i=1;i<=TOTAL;i++){const d=document.createElement('div');d.className='dot';d.id='d'+i;dotsEl.appendChild(d)}
 
-    // Build progress dots
-    const dotsEl = document.getElementById('progressDots');
-    for (let i = 1; i <= TOTAL; i++) {
-        const d = document.createElement('div');
-        d.className = 'dot';
-        d.id = 'dot-' + i;
-        dotsEl.appendChild(d);
-    }
+function render(){
+  const s=steps[step];
+  document.getElementById('badgeNum').textContent=step;
+  document.getElementById('cardTag').textContent=s.tag;
+  document.getElementById('stepTitle').textContent=s.title;
+  document.getElementById('stepDesc').textContent=s.desc;
+  document.getElementById('tipText').textContent=s.tip;
+  document.getElementById('debateQ').textContent=s.debate;
+  for(let i=1;i<=TOTAL;i++){const d=document.getElementById('d'+i);d.className='dot'+(i<step?' done':i===step?' active':'')}
+  document.querySelectorAll('.node').forEach(n=>n.classList.remove('on-enc','on-dec'));
+  s.enc.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.add('on-enc')});
+  s.dec.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.add('on-dec')});
+  document.getElementById('prevBtn').disabled=step===0;
+  document.getElementById('nextBtn').textContent=step===TOTAL?'完成 ✓':'下一步 →';
+  if(s.act)s.act();
+}
 
-    function updateUI() {
-        const s = steps[step];
-        document.getElementById('stepNumber').textContent = `STEP ${step} / ${TOTAL}`;
-        document.getElementById('stepTitle').textContent = s.title;
-        document.getElementById('stepDesc').textContent = s.desc;
-        document.getElementById('stepTip').textContent = s.tip;
-        document.getElementById('stepDebate').textContent = s.debate;
+function nextStep(){if(step<TOTAL){step++;clear();render()}}
+function prevStep(){if(step>0){step--;clear();render()}}
+function resetDemo(){step=0;clear();render()}
 
-        // Progress dots
-        for (let i = 1; i <= TOTAL; i++) {
-            const d = document.getElementById('dot-' + i);
-            d.className = 'dot';
-            if (i < step) d.classList.add('done');
-            else if (i === step) d.classList.add('current');
-        }
+function clear(){
+  document.getElementById('svg-canvas').innerHTML='';
+  const fw=document.getElementById('finalWord');fw.classList.remove('show','pulse');
+  document.querySelectorAll('.tok').forEach(t=>{t.classList.remove('show');t.style.opacity='0'});
+}
 
-        // Clear node states
-        document.querySelectorAll('.node').forEach(n => {
-            n.classList.remove('active-enc', 'active-dec');
-        });
+function center(id){
+  const el=document.getElementById(id),panel=document.querySelector('.arch');
+  if(!el||!panel)return null;
+  const er=el.getBoundingClientRect(),pr=panel.getBoundingClientRect();
+  return{x:er.left-pr.left+er.width/2,y:er.top-pr.top+er.height/2};
+}
 
-        s.enc.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.classList.add('active-enc');
-        });
-        s.dec.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.classList.add('active-dec');
-        });
+function animTok(fromId,toId,tokId){
+  const f=center(fromId),t=center(toId);if(!f||!t)return;
+  const tok=document.getElementById(tokId);
+  tok.style.left=(f.x-40)+'px';tok.style.top=(f.y-10)+'px';tok.style.opacity='1';tok.classList.add('show');
+  setTimeout(()=>{tok.style.left=(t.x-40)+'px';tok.style.top=(t.y-10)+'px'},60);
+}
 
-        document.getElementById('prevBtn').disabled = step === 0;
-        document.getElementById('nextBtn').textContent = step === TOTAL ? '完成 ✓' : '下一步 →';
+function drawAttn(){
+  const svg=document.getElementById('svg-canvas');
+  svg.innerHTML='';
+  const c=center('enc-attn');if(!c)return;
+  for(let i=0;i<7;i++){
+    const a=(i/7)*Math.PI*2,r=55;
+    const line=document.createElementNS("http://www.w3.org/2000/svg","line");
+    line.setAttribute("x1",c.x);line.setAttribute("y1",c.y);
+    line.setAttribute("x2",c.x+Math.cos(a)*r);line.setAttribute("y2",c.y+Math.sin(a)*r);
+    line.setAttribute("stroke","#5b72f5");line.setAttribute("stroke-width","2");
+    line.setAttribute("class","attn-line");
+    svg.appendChild(line);
+  }
+}
 
-        if (s.action) s.action();
-    }
-
-    function nextStep() { if (step < TOTAL) { step++; clearVisuals(); updateUI(); } }
-    function prevStep() { if (step > 0) { step--; clearVisuals(); updateUI(); } }
-    function resetDemo() { step = 0; clearVisuals(); updateUI(); }
-
-    function clearVisuals() {
-        document.getElementById('svgCanvas').innerHTML = '';
-        const out = document.getElementById('final-output');
-        out.classList.remove('visible', 'pulse');
-        document.querySelectorAll('.token-float').forEach(t => {
-            t.classList.remove('show');
-            t.style.opacity = 0;
-        });
-    }
-
-    function getNodeCenter(id) {
-        const el = document.getElementById(id);
-        const panel = document.querySelector('.arch-panel');
-        if (!el || !panel) return null;
-        const elRect = el.getBoundingClientRect();
-        const panelRect = panel.getBoundingClientRect();
-        return {
-            x: elRect.left - panelRect.left + elRect.width / 2,
-            y: elRect.top - panelRect.top + elRect.height / 2
-        };
-    }
-
-    function animateToken(fromId, toId, tokenId) {
-        const from = getNodeCenter(fromId);
-        const to = getNodeCenter(toId);
-        if (!from || !to) return;
-        const token = document.getElementById(tokenId);
-        token.style.left = (from.x - 40) + 'px';
-        token.style.top = (from.y - 10) + 'px';
-        token.style.opacity = '1';
-        token.classList.add('show');
-        setTimeout(() => {
-            token.style.left = (to.x - 40) + 'px';
-            token.style.top = (to.y - 10) + 'px';
-        }, 80);
-    }
-
-    function drawAttentionLines() {
-        const svg = document.getElementById('svgCanvas');
-        svg.innerHTML = '';
-        const center = getNodeCenter('enc-attn');
-        if (!center) return;
-        const count = 6;
-        for (let i = 0; i < count; i++) {
-            const angle = (i / count) * Math.PI * 2;
-            const r = 52;
-            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            line.setAttribute("x1", center.x);
-            line.setAttribute("y1", center.y);
-            line.setAttribute("x2", center.x + Math.cos(angle) * r);
-            line.setAttribute("y2", center.y + Math.sin(angle) * r);
-            line.setAttribute("stroke", "#4f8ef7");
-            line.setAttribute("stroke-width", "1.5");
-            line.setAttribute("class", "att-line");
-            svg.appendChild(line);
-        }
-    }
-
-    window.onload = updateUI;
+window.onload=render;
 </script>
 </body>
 </html>
